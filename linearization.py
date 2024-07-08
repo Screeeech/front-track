@@ -112,65 +112,50 @@ def function_translation(f, lims, N=None):
 
     return x, y
 
+def index_of(x, xs):
+    if x < xs[0] or x > xs[-1]:
+        return None
+    
+    i = 0
+    while True:
+        if xs[i] <= x and x <= xs[i+1]:
+            return i
+        i += 1
+
 # convex hull of a function
 def convex_hull(f, lims, N):
     x, y = function_translation(f, lims, N)
-    slopes = np.diff(y)/np.diff(x)
-    
-    convex_hull_i = []
+    convex_points = []
 
-    if slopes[0] <= slopes[1]:
-        convex_hull_i.append(0)
+    i = 0
+    while i < len(x):
+        if i == 0:
+            convex_points.append(i)
+            i += 1
+        else:
+            rad_from_hori = np.argmin(np.arctan2(y[i:] - y[convex_points[-1]], x[i:] - x[convex_points[-1]]))
+            convex_points.append(i + rad_from_hori)
+            i += rad_from_hori + 1
 
-    for i in range(1, len(slopes)):
-        if slopes[i] >= slopes[i-1]:
-            convex_hull_i.append(i)
-
-    if slopes[-2] <= slopes[-1]:
-        convex_hull_i.append(len(slopes))
-
-    if len(convex_hull_i) == 0:
-        return lims, [y[0], y[-1]]
-
-    yvals = y[convex_hull_i]
-    if not(0 in convex_hull_i):
-        convex_hull_i = [0] + convex_hull_i
-        yvals = np.insert(yvals, 0, yvals[0])
-    if not(len(slopes) in convex_hull_i):
-        convex_hull_i = convex_hull_i + [len(slopes)]
-        yvals = np.insert(yvals, -1, yvals[-1])
-    
-    return x[convex_hull_i], yvals
+    return x[convex_points], y[convex_points]
 
 # concave hull of a function
 def concave_hull(f, lims, N):
-    x, y = function_translation(f, lims, N)
-    slopes = np.diff(y)/np.diff(x)
+    x, y = function_translation(f, lims, N)    
+    concave_points = []
+
+    i = 0
+    while i < len(x):
+        if i == 0:
+            concave_points.append(i)
+            i += 1
+        else:
+            rad_from_hori = np.argmax(np.arctan2(y[i:] - y[concave_points[-1]], x[i:] - x[concave_points[-1]]))
+            concave_points.append(i + rad_from_hori)
+            i += rad_from_hori + 1
+        
+    return x[concave_points], y[concave_points]
     
-    concave_hull_i = []
-
-    if slopes[0] >= slopes[1]:
-        concave_hull_i.append(0)
-
-    for i in range(1, len(slopes)):
-        if slopes[i] <= slopes[i-1]:
-            concave_hull_i.append(i)
-
-    if slopes[-2] >= slopes[-1]:
-        concave_hull_i.append(len(slopes))
-
-    if len(concave_hull_i) == 0:
-        return lims, [y[0], y[-1]]
-
-    yvals = y[concave_hull_i]
-    if not(0 in concave_hull_i):
-        concave_hull_i = [0] + concave_hull_i
-        yvals = np.insert(yvals, 0, yvals[0])
-    if not(len(slopes) in concave_hull_i):
-        concave_hull_i = concave_hull_i + [len(slopes)]
-        yvals = np.insert(yvals, -1, yvals[-1])
-    
-    return x[concave_hull_i], yvals
 
 def f(x):
     return -.5*x**4-x**3+6*x**2
@@ -178,14 +163,14 @@ def f(x):
     return x**2/2
 
 
-
+"""
 fxlims = (-2,3)
 p = pointwise_linear_evaluation(f, fxlims, 100)
 # pp = function_translation(p, [2.4375, 8.0625], 100)
 plt.plot(*p,"b-")
 # plt.plot(*pp,"-")
 # print(concave_hull(f, [-4, 3], 20))
-c = concave_hull(p, fxlims, 100)
+c = convex_hull(p, fxlims, 100)
 plt.plot(*c, 'r-')
 plt.show()
-
+"""

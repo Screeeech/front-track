@@ -111,11 +111,17 @@ def clean_front(front, tol=1e-6):
 
     return waves, speeds, positions
 
-def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, show=False):
+def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, t=None, show=False):
+    if t is None and itr == -1:
+        raise ValueError("t must be specified if itr == -1")
+
     front = front_track(f, u, xlims, h, N, M)
     c = collide(front, xlims)
     c_time = c[1]
-    if c[1] == np.inf:
+
+    if c[1] == np.inf or itr == -1:
+        t = 1 if t is None else t
+        plot_front_track(front, xlims, t, N=100, show=show)
         return front, c[1]
     
     plot_front_track(front, xlims, c[1], N=100, show=False)
@@ -125,6 +131,7 @@ def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, show=False):
         c = collide(front, xlims)
         
         if c[1] == np.inf:
+            c_time += 1 if t is None else t
             break
         
         plot_front_track(front, xlims, c[1], N=100, t_offset=c_time, show=False)
@@ -149,6 +156,7 @@ fig = plt.gcf()
 fig.set_size_inches(12, 5)
 
 plt.subplot(1,3,1)
-front, t = plot_track_forward(f, u, [-2, 1], 0.2, N=4, M=100, itr=0, show=True)
+front, t = plot_track_forward(f, u, [-2, 1], 0.2, N=4, M=100, itr=5, show=False)
+plt.xlim((-2, 5))
 plt.show()
 
