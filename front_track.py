@@ -6,17 +6,21 @@ import linearization as lin
 import types
 from copy import deepcopy
 
-def front_track(f, u, xlims, h, N=10, M=100):
+def front_track(f, u, h, xlims=None, N=10, M=100):
     if N < 2:
         raise ValueError("N must be greater than 1")
     
     if isinstance(u, types.FunctionType):
+        if xlims is None:
+            raise ValueError("If u is a function, xlims must be specified")
         u_const = lin.pointwise_constant_evaluation(u, xlims, N)
         interface_positions = u_const[0][1:-1]
         interface_values = [(u_const[1][i], u_const[1][i+1]) for i in range(N-1)]
     elif isinstance(u, tuple):
-        if xlims[0] != u[0][0] or xlims[1] != u[0][-1]:
+        if xlims != None and (xlims[0] != u[0][0] or xlims[1] != u[0][-1]):
             raise ValueError("lims must be the same as the bounds of u")
+        else:
+            xlims = (u[0][0], u[0][-1])
         u_const = u
         interface_positions = u_const[0][1:-1]
         interface_values = [(u_const[1][i], u_const[1][i+1]) for i in range(len(u_const[1])-1)]
@@ -77,7 +81,7 @@ def collision_time(speeds, interface_positions, tol=1e-6):
         return np.inf
     return t
 
-def collide(front_track, xlims, tol=1e-6):
+def collide(front_track, tol=1e-6):
     waves, speeds, interface_positions = deepcopy(front_track)
     collision_indices = []
     min_time = np.inf
@@ -94,6 +98,11 @@ def collide(front_track, xlims, tol=1e-6):
         waves[i+1] = waves[i+1][1:]
     
     new_positions = propagate_t(speeds, interface_positions, min_time, tol=tol)
+    x_range = (np.max(new_positions) - np.min(new_positions))*.1
+    if x_range == 0:
+        x_range = 1
+    xlims = (np.min(new_positions)-x_range, np.max(new_positions)+x_range)
+    
     new_positions = [xlims[0]] + [i for i in new_positions] + [xlims[1]]
 
     return rm.waves_to_const(waves, new_positions), min_time
@@ -115,8 +124,8 @@ def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, t=None, show=False):
     if t is None and itr == -1:
         raise ValueError("t must be specified if itr == -1")
 
-    front = front_track(f, u, xlims, h, N, M)
-    c = collide(front, xlims)
+    front = front_track(f, u, h, xlims=xlims, N=N, M=M)
+    c = collide(front)
     c_time = c[1]
 
     if c[1] == np.inf or itr == -1:
@@ -127,8 +136,8 @@ def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, t=None, show=False):
     plot_front_track(front, xlims, c[1], N=100, show=False)
     for i in range(itr):
         u_ = lin.constant_linspace(c[0])
-        front = clean_front(front_track(f, u_, xlims, h, N=N, M=M))
-        c = collide(front, xlims)
+        front = clean_front(front_track(f, u_, h, N=N, M=M))
+        c = collide(front)
         
         if c[1] == np.inf:
             c_time += 1 if t is None else t

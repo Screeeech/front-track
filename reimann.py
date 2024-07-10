@@ -83,6 +83,7 @@ def plot_reimann(reimann_sol, xlims, T, N=100, x_offset=0, t_offset=0, show=Fals
 
 def waves_to_const(waves, positions, tol=1e-6):
     u = []
+    k=0
     for i in range(len(waves)):
         for j in range(len(waves[i])):
             if len(u) == 0:
@@ -90,6 +91,13 @@ def waves_to_const(waves, positions, tol=1e-6):
             else:
                 if np.abs(waves[i][j]-u[-1]) > tol:
                     u.append(waves[i][j])
+                else:
+                    u[-1] = waves[i][j]
+            k += 1
+
+    if len(positions) != len(u)+1:
+        raise IndexError("positions must be one element longer than u")
+    
     return np.array(positions), np.array(u)
 
 
