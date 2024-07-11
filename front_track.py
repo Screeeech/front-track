@@ -96,8 +96,17 @@ def collide(front_track, tol=1e-6):
     for i in collision_indices:
         waves[i] = waves[i][:-1]
         waves[i+1] = waves[i+1][1:]
+
+        # If the new interface waves are of the same value, remove both shocks entirely
+        if np.abs(waves[i][-1] - waves[i+1][0]) < tol:
+            speeds[i] = speeds[i][:-1]
+            speeds[i+1] = speeds[i+1][1:]
     
-    new_positions = propagate_t(speeds, interface_positions, min_time, tol=tol)
+    if min_time != np.inf:
+        new_positions = propagate_t(speeds, interface_positions, min_time, tol=tol)
+    else:
+        new_positions = interface_positions
+
     x_range = (np.max(new_positions) - np.min(new_positions))*.1
     if x_range == 0:
         x_range = 1
@@ -154,8 +163,8 @@ def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, t=None, show=False):
     return front, c_time
 
 def f(x):
-    # return x**2/2
-    return -.5*x**4-x**3+6*x**2
+    return x**2/2
+    # return -.5*x**4-x**3+6*x**2
 
 def u(x):
     return 3*x**2
@@ -165,7 +174,7 @@ fig = plt.gcf()
 fig.set_size_inches(12, 5)
 
 plt.subplot(1,3,1)
-front, t = plot_track_forward(f, u, [-2, 1], 0.2, N=4, M=100, itr=5, show=False)
-plt.xlim((-2, 5))
-plt.show()
+front, t = plot_track_forward(f, u, [-2, 1], 0.2, N=4, M=100, itr=10, t=.1, show=True)
+# plt.xlim((-2, 1))
+# plt.show()
 
