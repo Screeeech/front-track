@@ -130,6 +130,9 @@ def clean_front(front, tol=1e-6):
     return waves, speeds, positions
 
 def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, t=None, show=False):
+    minx = xlims[0]
+    maxx = xlims[1]
+
     if t is None and itr == -1:
         raise ValueError("t must be specified if itr == -1")
 
@@ -137,8 +140,16 @@ def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, t=None, show=False):
     c = collide(front)
     c_time = c[1]
 
+    minx = np.minimum(minx, c[0][0][0])
+    maxx = np.maximum(maxx, c[0][0][-1])
+    c[0][0][0] = minx
+    c[0][0][-1] = maxx
+    
+
     if c[1] == np.inf or itr == -1:
         t = 1 if t is None else t
+        plt.xlim((minx, maxx))
+        plt.ylim([0, t])
         plot_front_track(front, xlims, t, N=100, show=show)
         return front, c[1]
     
@@ -147,34 +158,70 @@ def plot_track_forward(f, u, xlims, h, N=10, M=100, itr=1, t=None, show=False):
         u_ = lin.constant_linspace(c[0])
         front = clean_front(front_track(f, u_, h, N=N, M=M))
         c = collide(front)
+        minx = np.minimum(minx, c[0][0][0])
+        maxx = np.maximum(maxx, c[0][0][-1])
+        c[0][0][0] = minx
+        c[0][0][-1] = maxx
         
         if c[1] == np.inf:
-            c_time += 1 if t is None else t
+            # c_time += 1 if t is None else t
             break
         
         plot_front_track(front, xlims, c[1], N=100, t_offset=c_time, show=False)
         c_time += c[1]
+
+    if t is not None or c[1] == np.inf:
+        t = 1 if t is None else t
+        u_ = lin.constant_linspace(c[0])
+        front = clean_front(front_track(f, u_, h, N=N, M=M))
+        plot_front_track(front, xlims, t, N=100, t_offset=c_time, show=False)
+        c_time += t
     
+    plt.xlim((minx, maxx))
+    plt.ylim([0, c_time])
     if show:
-        plt.xlim(xlims)
-        plt.ylim([0, c_time])
         plt.show()
 
     return front, c_time
 
 def f(x):
+    # return x
     return x**2/2
     # return -.5*x**4-x**3+6*x**2
 
 def u(x):
-    return 3*x**2
+    # return 3*x**2
+    # return 1 if x < 0 else 0
+    if x < -1:
+        return 1
+    if x < 1:
+        return 2
+    return 0
 
 # make the plot bigger
 fig = plt.gcf()
-fig.set_size_inches(12, 5)
+fig.set_size_inches(10, 5)
 
-plt.subplot(1,3,1)
-front, t = plot_track_forward(f, u, [-2, 1], 0.2, N=4, M=100, itr=10, t=.1, show=True)
+xlims = (-2, 2)
+
+plt.subplot(1,2,1)
+plt.xlabel("x")
+plt.ylabel("t")
+collisions = 5
+front, t = plot_track_forward(f, u, xlims, h=0.2, N=3, M=100, itr=collisions-1, t=1, show=False)
+plt.title("Solution over Time")
+
+
+plt.subplot(1,2,2)
+plt.xlabel("x")
+plt.ylabel("u")
+u_const = lin.pointwise_constant_evaluation(u, xlims, 3)
+u_ = lin.constant_linspace(u_const)
+# plt.plot(np.linspace(xlims[0], xlims[1], 100), [u(x) for x in np.linspace(xlims[0], xlims[1], 100)])
+plt.plot(*u_)
+plt.title("Initial Condition")
+
+plt.show()
 # plt.xlim((-2, 1))
 # plt.show()
 
